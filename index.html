@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>MobileMate POS & Inventory</title>
     <!-- Mobile Runtime & Safe Storage Layer -->
     <script src="assets/js/mobile_runtime.js"></script>
@@ -120,24 +120,27 @@
     <!-- Sidebar -->
     <aside id="sidebar"
         class="w-64 bg-white dark:bg-darkCard border-r border-gray-200 dark:border-darkBorder flex flex-col fixed inset-y-0 left-0 -translate-x-full lg:translate-x-0 lg:sticky lg:top-0 lg:h-screen transition-transform duration-300 z-30 shrink-0">
-        <!-- Logo -->
-        <div class="h-16 flex items-center px-6 border-b border-gray-200 dark:border-darkBorder">
-            <div class="flex items-center gap-3">
-
+        <!-- Logo & Mobile Close -->
+        <div class="h-16 flex items-center justify-between px-5 border-b border-gray-200 dark:border-darkBorder">
+            <div class="flex items-center gap-3 min-w-0">
                 <div id="side-logo-wrap"
-                    class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden hidden">
+                    class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden hidden shrink-0">
                     <img id="side-logo-img" src="" class="w-full h-full object-contain">
                 </div>
                 <i id="side-logo-icon"
-                    class="fa-solid fa-mobile-screen-button text-2xl text-primary dark:text-secondary"></i>
-                <div class="flex flex-col leading-tight">
+                    class="fa-solid fa-mobile-screen-button text-2xl text-primary dark:text-secondary shrink-0"></i>
+                <div class="flex flex-col leading-tight min-w-0">
                     <span id="brand-main"
-                        class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">MobileMate</span>
+                        class="text-xl font-bold tracking-tight text-gray-900 dark:text-white truncate">MobileMate</span>
                     <span id="brand-sub"
                         class="text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest -mt-0.5 whitespace-nowrap overflow-hidden block">Technologies
                         (PVT) LTD</span>
                 </div>
             </div>
+            <!-- Mobile Close Drawer Button -->
+            <button id="sidebar-close-btn" class="lg:hidden p-2 text-gray-400 hover:text-red-500 dark:hover:text-red-400 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors shrink-0" title="Close Menu">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
         </div>
 
         <!-- Navigation -->

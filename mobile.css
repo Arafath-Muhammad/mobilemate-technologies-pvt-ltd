@@ -1,0 +1,1023 @@
+/* ============================================================
+   MobileMate POS — Mobile-First Responsive Stylesheet
+   Covers: layout, modals, tables, POS, header, sidebar
+   Breakpoints: xs(<480px), sm(<640px), md(<768px), lg(<1024px)
+   ============================================================ */
+
+/* --------------------------------------------------------
+   1. ROOT OVERRIDES & SAFE AREAS
+   -------------------------------------------------------- */
+:root {
+    --mobile-header-h: 56px;
+    --mobile-nav-h: 64px;          /* bottom nav height */
+    --sidebar-w: 270px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-top: env(safe-area-inset-top, 0px);
+}
+
+/* Prevent horizontal overflow at root level */
+html, body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* --------------------------------------------------------
+   2. BOTTOM NAVIGATION BAR  (mobile only – below lg)
+   -------------------------------------------------------- */
+#mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(var(--mobile-nav-h) + var(--safe-bottom));
+    padding-bottom: var(--safe-bottom);
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    z-index: 50;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(255,255,255,0.95);
+}
+
+.dark #mobile-bottom-nav {
+    background: rgba(30, 41, 59, 0.97);
+    border-top-color: #334155;
+}
+
+#mobile-bottom-nav .mnav-items {
+    display: flex;
+    height: var(--mobile-nav-h);
+    align-items: stretch;
+}
+
+#mobile-bottom-nav .mnav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #9ca3af;
+    transition: color 0.2s, background 0.2s;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    position: relative;
+    padding: 0 4px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#mobile-bottom-nav .mnav-btn i {
+    font-size: 18px;
+    transition: transform 0.2s, color 0.2s;
+}
+
+#mobile-bottom-nav .mnav-btn.active {
+    color: #01a5a5;
+}
+
+#mobile-bottom-nav .mnav-btn.active i {
+    transform: translateY(-2px);
+    color: #01a5a5;
+}
+
+#mobile-bottom-nav .mnav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 3px;
+    background: #01a5a5;
+    border-radius: 3px 3px 0 0;
+}
+
+/* More menu button */
+#mobile-bottom-nav .mnav-btn.mnav-more i {
+    font-size: 20px;
+}
+
+/* --------------------------------------------------------
+   3. MOBILE MORE DRAWER (slide-up panel)
+   -------------------------------------------------------- */
+#mobile-more-drawer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    pointer-events: none;
+}
+
+#mobile-more-drawer.open {
+    pointer-events: auto;
+}
+
+#mobile-more-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+#mobile-more-drawer.open #mobile-more-backdrop {
+    opacity: 1;
+}
+
+#mobile-more-panel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-height: 85vh;
+    background: #ffffff;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -20px 60px rgba(0,0,0,0.15);
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dark #mobile-more-panel {
+    background: #1e293b;
+}
+
+#mobile-more-drawer.open #mobile-more-panel {
+    transform: translateY(0);
+}
+
+#mobile-more-panel .drawer-handle {
+    width: 36px;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 99px;
+    margin: 12px auto 4px;
+    flex-shrink: 0;
+}
+
+.dark #mobile-more-panel .drawer-handle {
+    background: #334155;
+}
+
+#mobile-more-panel .drawer-header {
+    padding: 0 20px 12px;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+#mobile-more-panel .drawer-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    padding: 4px 12px 8px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+    padding-bottom: calc(8px + var(--safe-bottom));
+}
+
+#mobile-more-panel .drawer-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 6px;
+    border-radius: 16px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4b5563;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    text-align: center;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.dark #mobile-more-panel .drawer-item {
+    color: #94a3b8;
+}
+
+#mobile-more-panel .drawer-item:active {
+    transform: scale(0.94);
+    background: rgba(1, 165, 165, 0.08);
+}
+
+#mobile-more-panel .drawer-item i {
+    font-size: 20px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border-radius: 12px;
+    transition: background 0.15s;
+}
+
+.dark #mobile-more-panel .drawer-item i {
+    background: #334155;
+}
+
+#mobile-more-panel .drawer-item.active-item i {
+    background: rgba(1, 165, 165, 0.12);
+    color: #01a5a5;
+}
+
+#mobile-more-panel .drawer-item.active-item {
+    color: #01a5a5;
+}
+
+/* --------------------------------------------------------
+   4. HEADER ENHANCEMENTS
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    header {
+        height: var(--mobile-header-h) !important;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    #page-title {
+        font-size: 15px !important;
+        max-width: calc(100vw - 140px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Compact header actions */
+    header .hidden.sm\:block {
+        display: none !important;
+    }
+}
+
+/* --------------------------------------------------------
+   5. SIDEBAR MOBILE BEHAVIOUR
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    /* Sidebar is full height slide-in drawer */
+    #sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: var(--sidebar-w) !important;
+        max-width: 85vw;
+        z-index: 200 !important;
+        overflow-y: auto;
+    }
+
+    /* Backdrop covers everything behind sidebar */
+    #sidebar-overlay {
+        z-index: 190 !important;
+    }
+}
+
+/* --------------------------------------------------------
+   6. MAIN CONTENT AREA
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    main {
+        padding-bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 8px);
+    }
+
+    #views-container {
+        padding: 12px !important;
+    }
+}
+
+@media (max-width: 639px) {
+    #views-container {
+        padding: 8px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   7. VIEW SECTION — common padding fix
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    .view-section[class*="p-6"] {
+        padding: 12px !important;
+    }
+}
+
+@media (max-width: 639px) {
+    .view-section[class*="p-6"] {
+        padding: 8px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   8. MODAL RESPONSIVE OVERRIDES
+   -------------------------------------------------------- */
+
+/* Universal mobile modals — 95% to 100% width, flexible bottom sheet or full-height */
+@media (max-width: 767px) {
+    /* Modal container overlays */
+    [id$="-modal"],
+    [id$="-overlay"],
+    .modal-backdrop {
+        padding: 6px !important;
+        align-items: flex-end !important;
+    }
+
+    /* All modal dialog boxes */
+    [id$="-modal"] > div,
+    [id$="-overlay"] > div,
+    .modal-dialog,
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        max-height: calc(100dvh - 12px) !important;
+        height: auto !important;
+        margin: 0 auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        border-radius: 24px 24px 0 0 !important;
+        overflow: hidden !important;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.2) !important;
+    }
+
+    /* Modal header sticky at top */
+    [id$="-modal"] > div > div:first-child,
+    [id$="-modal"] .modal-header,
+    [id$="-modal"] .sticky.top-0 {
+        flex-shrink: 0 !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 30 !important;
+    }
+
+    /* Modal body internal scrolling so action buttons never get cut off */
+    [id$="-modal"] > div > div:nth-child(2),
+    [id$="-modal"] .modal-body,
+    [id$="-modal"] .overflow-y-auto {
+        flex: 1 1 auto !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        min-height: 0 !important;
+    }
+
+    /* Modal action footer sticky at bottom */
+    [id$="-modal"] > div > div:last-child:not(:first-child),
+    [id$="-modal"] .modal-footer {
+        flex-shrink: 0 !important;
+        position: sticky !important;
+        bottom: 0 !important;
+        z-index: 30 !important;
+        padding-bottom: calc(12px + var(--safe-bottom)) !important;
+    }
+
+    /* SweetAlert2 popups take 95% on mobile */
+    .swal2-popup {
+        width: 95% !important;
+        max-width: 95% !important;
+        padding: 16px !important;
+        border-radius: 24px !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Preview modal — full screen */
+    #preview-modal > div {
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+        height: 100vh !important;
+    }
+
+    #preview-modal .px-6.py-4 {
+        padding: 10px 14px !important;
+    }
+
+    #preview-modal .px-8.py-5 {
+        padding: 10px 14px !important;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* PO Modal */
+    #po-modal > div {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+        height: 100dvh !important;
+    }
+
+    /* GRN Modal */
+    #grn-modal > div {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+        height: 100dvh !important;
+    }
+
+    /* HR Modal */
+    #hr-modal > div {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+    }
+
+    /* Sales Doc Modal */
+    #sales-doc-modal > div {
+        max-width: 100vw !important;
+        width: 100vw !important;
+        border-radius: 0 !important;
+        max-height: 100vh !important;
+        height: 100dvh !important;
+    }
+
+    /* Vertically-centered modals → bottom sheets on mobile */
+    .fixed.inset-0.flex.items-center.justify-center > div[class*="max-w"] {
+        margin-bottom: 0 !important;
+    }
+}
+
+/* Two-column modal layouts collapse to single column */
+@media (max-width: 767px) {
+    #po-modal .flex-1.overflow-hidden.flex.flex-col.lg\:flex-row,
+    #grn-modal .flex-1.overflow-hidden.flex.flex-col.lg\:flex-row,
+    #sales-doc-modal .flex-1.overflow-hidden.flex.flex-col.lg\:flex-row {
+        flex-direction: column !important;
+        overflow-y: auto !important;
+    }
+
+    #po-modal .w-full.lg\:w-96,
+    #grn-modal .w-full.lg\:w-80,
+    #sales-doc-modal .w-full.lg\:w-96 {
+        width: 100% !important;
+        border-left: none !important;
+        border-top: 1px solid #e5e7eb;
+        max-height: 300px;
+    }
+
+    .dark #po-modal .w-full.lg\:w-96,
+    .dark #grn-modal .w-full.lg\:w-80,
+    .dark #sales-doc-modal .w-full.lg\:w-96 {
+        border-top-color: #334155;
+    }
+}
+
+/* Modal headers compact on mobile */
+@media (max-width: 639px) {
+    [id$="-modal"] .px-6.py-4.border-b,
+    [id$="-modal"] .px-8.py-6.border-b {
+        padding: 12px 14px !important;
+    }
+
+    [id$="-modal"] h3 {
+        font-size: 14px !important;
+    }
+
+    [id$="-modal"] .text-xl.font-black {
+        font-size: 14px !important;
+    }
+
+    [id$="-modal"] .w-12.h-12 {
+        width: 36px !important;
+        height: 36px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   9. POS TERMINAL — mobile layout
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    #pos-view > div {
+        padding: 8px !important;
+        padding-bottom: 80px !important;  /* space for checkout button */
+    }
+
+    /* Hide the wide table header columns */
+    #pos-view .px-8.py-5 .w-48,
+    #pos-view .px-8.py-5 .w-32:not(:last-child) {
+        display: none !important;
+    }
+
+    /* POS two-column → show tabs instead */
+    #pos-view .flex-col.lg\:flex-row {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    /* Right checkout panel: full width card */
+    #pos-view .lg\:w-\[420px\] {
+        width: 100% !important;
+    }
+}
+
+/* Cart line items simplify on very small screens */
+@media (max-width: 639px) {
+    /* Compact cart row */
+    #pos-cart-list .flex.items-center.py-4 {
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 10px 0 !important;
+    }
+
+    #pos-cart-list .w-48 {
+        display: none !important;    /* hide serial/warranty on xs */
+    }
+
+    #pos-cart-list .w-32:first-of-type {
+        display: none !important;    /* hide unit price column */
+    }
+
+    #pos-cart-list .w-40 {
+        font-size: 12px !important;
+    }
+
+    #pos-cart-list .flex-1 span:last-child {
+        font-size: 9px !important;
+    }
+}
+
+/* POS checkout total section sticky on mobile */
+@media (max-width: 1023px) {
+    #btn-pay {
+        position: sticky;
+        bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 8px);
+        z-index: 30;
+        width: 100%;
+        height: 60px !important;
+        font-size: 16px !important;
+        border-radius: 16px !important;
+        box-shadow: 0 8px 32px rgba(14, 50, 87, 0.25) !important;
+    }
+}
+
+/* --------------------------------------------------------
+   10. DATA TABLES — horizontal scroll wrapper
+   -------------------------------------------------------- */
+.table-responsive-wrapper,
+.table-responsive,
+.overflow-x-auto {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    position: relative;
+}
+
+@media (max-width: 1023px) {
+    /* Wrap any overflow table */
+    .table-responsive,
+    .table-responsive-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        border-radius: 12px;
+    }
+
+    /* Add auto-scroll to dynamically rendered tables */
+    .view-section table,
+    .table-responsive-wrapper table {
+        min-width: 600px;
+    }
+
+    /* Scrollable table containers built with JS */
+    .overflow-x-auto {
+        -webkit-overflow-scrolling: touch !important;
+    }
+}
+
+/* Hide non-critical columns only when explicitly requested */
+@media (max-width: 639px) {
+    .view-section table.compact-table th:nth-child(n+5),
+    .view-section table.compact-table td:nth-child(n+5) {
+        display: none;
+    }
+}
+
+/* --------------------------------------------------------
+   11. CARDS & GRIDS
+   -------------------------------------------------------- */
+
+/* Dashboard stat cards */
+@media (max-width: 639px) {
+    .grid.grid-cols-1.sm\:grid-cols-2.lg\:grid-cols-5 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    /* Clock card full-width */
+    .clock-card {
+        grid-column: span 2;
+    }
+
+    /* Dashboard chart area */
+    .grid.grid-cols-1.lg\:grid-cols-3 {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+
+    /* Quick actions */
+    .grid.grid-cols-2.lg\:grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 6px !important;
+    }
+}
+
+/* General two-column grids on mobile */
+@media (max-width: 479px) {
+    .grid.md\:grid-cols-2,
+    .grid.md\:grid-cols-3,
+    .grid.md\:grid-cols-4,
+    .grid.md\:grid-cols-5 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* PO / GRN inner grids */
+@media (max-width: 767px) {
+    .grid.grid-cols-1.md\:grid-cols-5,
+    .grid.grid-cols-1.md\:grid-cols-4,
+    .grid.grid-cols-1.md\:grid-cols-2 {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+}
+
+@media (max-width: 479px) {
+    .grid.grid-cols-1.md\:grid-cols-5,
+    .grid.grid-cols-1.md\:grid-cols-4,
+    .grid.grid-cols-1.md\:grid-cols-2 {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* --------------------------------------------------------
+   12. TYPOGRAPHY SCALING
+   -------------------------------------------------------- */
+@media (max-width: 639px) {
+    .text-5xl { font-size: 2.25rem !important; }
+    .text-4xl { font-size: 1.875rem !important; }
+    .text-3xl { font-size: 1.5rem !important; }
+    .text-2xl { font-size: 1.25rem !important; }
+}
+
+/* --------------------------------------------------------
+   13. TOUCH TARGETS — minimum 44×44 px
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    .nav-btn {
+        min-height: 44px;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+
+    button:not(.btn-inline),
+    [role="button"],
+    a.nav-btn,
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Action buttons in tables/lists */
+    .action-btn {
+        min-width: 44px !important;
+        min-height: 44px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   14. FORMS & INPUTS
+   -------------------------------------------------------- */
+@media (max-width: 639px) {
+    /* Prevent zoom on input focus (iOS) & enforce comfortable touch padding */
+    input[type="text"],
+    input[type="number"],
+    input[type="email"],
+    input[type="password"],
+    input[type="date"],
+    input[type="search"],
+    textarea,
+    select {
+        font-size: 16px !important;  /* prevents iOS auto-zoom */
+        min-height: 44px !important;
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+
+    /* Comfortable tap area */
+    input, select, textarea {
+        min-height: 44px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   15. FLOATING BUTTONS REPOSITION ON MOBILE
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    #whatsapp-float {
+        bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 12px) !important;
+        left: 12px !important;
+        width: 48px !important;
+        height: 48px !important;
+    }
+
+    #whatsapp-float i {
+        font-size: 26px !important;
+    }
+
+    #whatsapp-float > div {
+        display: none !important;  /* hide tooltip on mobile */
+    }
+
+    #scroll-to-top {
+        bottom: calc(var(--mobile-nav-h) + var(--safe-bottom) + 70px) !important;
+        right: 12px !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   16. ANIMATE SLIDE-IN for bottom sheet modals
+   -------------------------------------------------------- */
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 767px) {
+    #payment-modal.animate-fade-in > div,
+    #customer-modal.animate-fade-in > div,
+    #pos-item-detail-modal.animate-fade-in > div {
+        animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+}
+
+/* --------------------------------------------------------
+   17. POS SEARCH BAR MOBILE
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    #pos-view .relative.w-full.max-w-4xl {
+        max-width: 100% !important;
+        margin-top: 0 !important;
+    }
+
+    #pos-search {
+        padding: 14px 14px 14px 48px !important;
+        font-size: 15px !important;
+        border-radius: 20px !important;
+    }
+
+    #pos-search-results {
+        border-radius: 16px !important;
+        max-height: 60vh;
+    }
+}
+
+/* --------------------------------------------------------
+   18. PREVIEW MODAL: responsive iframe
+   -------------------------------------------------------- */
+@media (max-width: 767px) {
+    #preview-frame-container {
+        max-width: 100% !important;
+        min-height: auto !important;
+        width: 100% !important;
+        box-shadow: none !important;
+    }
+
+    #preview-iframe {
+        min-height: 500px;
+    }
+
+    #preview-modal .flex-1 {
+        padding: 8px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   19. HEADER SEARCH & STORE SELECTOR — mobile collapsible
+   -------------------------------------------------------- */
+@media (max-width: 767px) {
+    .hidden.sm\:block {
+        display: none !important;
+    }
+}
+
+/* --------------------------------------------------------
+   20. LOGIN OVERLAY — mobile
+   -------------------------------------------------------- */
+@media (max-width: 479px) {
+    #login-overlay > div {
+        padding: 24px 20px !important;
+        border-radius: 20px !important;
+    }
+
+    #login-overlay h1 {
+        font-size: 1.5rem !important;
+    }
+}
+
+/* --------------------------------------------------------
+   21. BOTTOM SHEET DRAG INDICATOR
+   -------------------------------------------------------- */
+.mobile-sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 99px;
+    margin: 10px auto 6px;
+}
+.dark .mobile-sheet-handle {
+    background: #334155;
+}
+
+/* --------------------------------------------------------
+   22. MOBILE TABLE CARDS (card view for very small screens)
+   -------------------------------------------------------- */
+@media (max-width: 479px) {
+    .mobile-card-table {
+        display: block !important;
+    }
+
+    .mobile-card-table thead {
+        display: none !important;
+    }
+
+    .mobile-card-table tbody,
+    .mobile-card-table tr {
+        display: block !important;
+    }
+
+    .mobile-card-table tr {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        padding: 10px 12px;
+        position: relative;
+    }
+
+    .dark .mobile-card-table tr {
+        background: #1e293b;
+        border-color: #334155;
+    }
+
+    .mobile-card-table td {
+        display: flex !important;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0 !important;
+        border: none !important;
+        font-size: 12px;
+    }
+
+    .mobile-card-table td::before {
+        content: attr(data-label);
+        font-size: 9px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #9ca3af;
+        flex-shrink: 0;
+        margin-right: 8px;
+    }
+}
+
+/* --------------------------------------------------------
+   23. SWIPE GESTURE HINT ANIMATION
+   -------------------------------------------------------- */
+@keyframes swipeHint {
+    0%, 100% { transform: translateX(0); }
+    40%       { transform: translateX(8px); }
+    80%       { transform: translateX(-4px); }
+}
+
+.swipe-hint {
+    animation: swipeHint 1.2s ease-in-out 1s 2;
+}
+
+/* --------------------------------------------------------
+   24. CUSTOM SCROLLBAR MOBILE (thinner)
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 3px !important;
+        height: 3px !important;
+    }
+}
+
+/* --------------------------------------------------------
+   25. SAFE PADDING & DISPLAY CLASSES
+   -------------------------------------------------------- */
+.pb-safe {
+    padding-bottom: var(--safe-bottom);
+}
+
+.h-dvh {
+    height: 100dvh;
+}
+
+/* Utility: show/hide based on mobile context */
+@media (max-width: 1023px) {
+    .mobile\:hidden { display: none !important; }
+    .mobile\:block  { display: block !important; }
+    .mobile\:flex   { display: flex !important; }
+}
+
+@media (min-width: 1024px) {
+    .desktop\:hidden { display: none !important; }
+    #mobile-bottom-nav { display: none !important; }
+    #mobile-more-drawer { display: none !important; }
+}
+
+/* Show bottom nav only on mobile/tablet */
+@media (max-width: 1023px) {
+    #mobile-bottom-nav { display: flex; flex-direction: column; }
+    #mobile-more-drawer { display: block; }
+}
+
+/* --------------------------------------------------------
+   26. COMPACT CARD STATS ON SMALL SCREENS
+   -------------------------------------------------------- */
+@media (max-width: 479px) {
+    .clock-card .analog-clock {
+        width: 70px !important;
+        height: 70px !important;
+    }
+
+    .clock-card .text-3xl {
+        font-size: 1.4rem !important;
+    }
+}
+
+/* --------------------------------------------------------
+   27. POS CHECKOUT BOX — collapsible on mobile
+   -------------------------------------------------------- */
+@media (max-width: 1023px) {
+    #pos-checkout-panel {
+        position: fixed;
+        bottom: var(--mobile-nav-h);
+        left: 0; right: 0;
+        background: #ffffff;
+        border-top: 1px solid #e5e7eb;
+        z-index: 40;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+        padding-bottom: calc(12px + var(--safe-bottom));
+    }
+
+    .dark #pos-checkout-panel {
+        background: #1e293b;
+        border-top-color: #334155;
+    }
+}
+
+/* --------------------------------------------------------
+   28. RESPONSIVE PO TABLE HEADER
+   -------------------------------------------------------- */
+@media (max-width: 767px) {
+    #po-modal .bg-gray-50\/80 span,
+    #grn-modal .bg-gray-50\/80 span {
+        font-size: 8px !important;
+        letter-spacing: 0.05em !important;
+    }
+}
+
+/* --------------------------------------------------------
+   29. DASHBOARD RESPONSIVENESS OVERRIDES (max-width: 480px)
+   -------------------------------------------------------- */
+@media (max-width: 480px) {
+    .dashboard-mobile-cols {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .clock-card .analog-clock {
+        width: 80px !important;
+        height: 80px !important;
+    }
+}
+
