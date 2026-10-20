@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MobileMate — Ledger Audit Tool</title>
+<script src="https://unpkg.com/dexie@3/dist/dexie.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 24px; }
+  h1 { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 4px; letter-spacing: -0.5px; }
+  .subtitle { font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 28px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 16px; padding: 20px; }
+  .card-label { font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+  .card-value { font-size: 28px; font-weight: 900; }
+  .green { color: #10b981; }
+  .red { color: #ef4444; }
+  .yellow { color: #f59e0b; }
+  .blue { color: #60a5fa; }
+  .white { color: #fff; }
+
+  .section { background: #1e293b; border: 1px solid #334155; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }
+  .section-header { padding: 16px 20px; border-bottom: 1px solid #334155; display: flex; align-items: center; justify-content: space-between; }
+  .section-title { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; }
+  .badge { font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 999px; }
+  .badge-red { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .badge-green { background: rgba(16,185,129,0.15); color: #10b981; }
+  .badge-yellow { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 900; color: #475569; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #334155; }
+  td { padding: 10px 16px; border-bottom: 1px solid #1e293b; color: #cbd5e1; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .debit { color: #10b981; }
+  .credit { color: #ef4444; }
+  .mono { font-family: 'Courier New', monospace; font-weight: 700; }
+  .running { font-size: 10px; color: #64748b; }
+
+  .alert { padding: 16px 20px; border-radius: 12px; margin-bottom: 16px; font-size: 13px; font-weight: 600; }
+  .alert-warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; }
+  .alert-danger { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #f87171; }
+  .alert-info { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.3); color: #93c5fd; }
+  .alert-success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; }
+
+  #loading { text-align: center; padding: 60px; }
+  .spinner { width: 40px; height: 40px; border: 3px solid #334155; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fix-btn {
+    display: inline-block; margin-top: 12px; padding: 10px 20px;
+    background: #ef4444; color: #fff; border: none; border-radius: 10px;
+    font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .fix-btn:hover { background: #dc2626; }
+  .fix-btn.green-btn { background: #10b981; }
+  .fix-btn.green-btn:hover { background: #059669; }
+
+  .dup-highlight td { background: rgba(239,68,68,0.08) !important; }
+
+  .section-pad { padding: 20px; }
+</style>
+</head>
+<body>
+
+<h1>🔍 Ledger Audit Tool</h1>
+<p class="subtitle">MobileMate POS — Cash Account Discrepancy Investigation</p>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p style="color:#64748b; font-size:13px;">Connecting to IndexedDB and scanning ledger...</p>
+</div>
+
+<div id="results" style="display:none;"></div>
+
+<script>
+const DB_NAME = 'MobileMatePOS';
+
+async function openDB() {
+  // Re-open with same schema version to avoid upgrade events
+  const db = new Dexie(DB_NAME);
+  // Just open without specifying version — reads existing schema
+  await db.open();
+  return db;
+}
+
+function fmt(n) {
+  return 'Rs. ' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function runAudit() {
+  try {
+    const db = await openDB();
+    const ledger = await db.ledger.orderBy('id').toArray();
+    const accounts = await db.accounts.toArray();
+
+    const accByCode = {};
+    const accById = {};
+    accounts.forEach(a => {
+      accByCode[a.code] = a;
+      accById[a.id] = a;
+    });
+
+    // ── Cash accounts ──
+    const cashAcc  = accByCode['1000'];
+    const bankAcc  = accByCode['1010'];
+    const cashIds  = [cashAcc?.id, bankAcc?.id].filter(Boolean);
+
+    // ── All entries touching cash ──
+    const cashEntries = ledger.filter(e => cashIds.includes(e.account_id));
+
+    // Compute running balance
+    let runningBalance = 0;
+    const enriched = cashEntries.map(e => {
+      const amt = Number(e.amount) || 0;
+      if (e.type === 'debit')  runningBalance += amt;
+      else                     runningBalance -= amt;
+      return { ...e, running: runningBalance };
+    });
+
+    const totalDebits  = cashEntries.filter(e => e.type === 'debit').reduce((s,e)=>s+Number(e.amount),0);
+    const totalCredits = cashEntries.filter(e => e.type === 'credit').reduce((s,e)=>s+Number(e.amount),0);
+    const netBalance   = totalDebits - totalCredits;
+
+    // ── Breakdown by reference_type ──
+    const byRef = {};
+    cashEntries.forEach(e => {
+      const k = e.reference_type || 'Manual';
+      if (!byRef[k]) byRef[k] = { debits: 0, credits: 0, count: 0 };
+      if (e.type === 'debit')  byRef[k].debits  += Number(e.amount);
+      else                     byRef[k].credits += Number(e.amount);
+      byRef[k].count++;
+    });
+
+    // ── Detect duplicate reference_ids per reference_type ──
+    const dupMap = {};
+    cashEntries.forEach(e => {
+      const key = (e.reference_type||'') + '|' + (e.reference_id||'');
+      if (!dupMap[key]) dupMap[key] = [];
+      dupMap[key].push(e);
+    });
+    const duplicates = Object.entries(dupMap).filter(([,arr]) => arr.length > 2);
+
+    // ── All ledger entries grouped by reference ──
+    const allByRef = {};
+    ledger.forEach(e => {
+      const key = (e.reference_type||'') + '|' + (e.reference_id||e.date);
+      if (!allByRef[key]) allByRef[key] = [];
+      allByRef[key].push(e);
+    });
+
+    // ── Check for unbalanced journal entries ──
+    const unbalanced = [];
+    Object.entries(allByRef).forEach(([key, entries]) => {
+      const dSum = entries.filter(e=>e.type==='debit').reduce((s,e)=>s+Number(e.amount),0);
+      const cSum = entries.filter(e=>e.type==='credit').reduce((s,e)=>s+Number(e.amount),0);
+      if (Math.abs(dSum - cSum) > 0.01 && entries.some(e=>cashIds.includes(e.account_id))) {
+        unbalanced.push({ key, entries, dSum, cSum, diff: dSum - cSum });
+      }
+    });
+
+    // ── Cash credit entries (outflows) breakdown ──
+    const creditsByType = cashEntries.filter(e=>e.type==='credit');
+    const creditBreakdown = {};
+    creditsByType.forEach(e => {
+      const k = e.reference_type || 'Manual';
+      if (!creditBreakdown[k]) creditBreakdown[k] = [];
+      creditBreakdown[k].push(e);
+    });
+
+    // ── Render ──
+    document.getElementById('loading').style.display = 'none';
+    const R = document.getElementById('results');
+    R.style.display = 'block';
+
+    const dupAlert = duplicates.length > 0
+      ? `<div class="alert alert-danger">⚠️ <strong>DUPLICATE ENTRIES DETECTED:</strong> ${duplicates.length} reference ID(s) have more than 2 ledger rows (expected max 2 for double-entry). These are likely causing the discrepancy.</div>`
+      : `<div class="alert alert-success">✅ No obvious duplicate reference entries found.</div>`;
+
+    const balanceAlert = netBalance < 0
+      ? `<div class="alert alert-danger">🚨 Cash balance is <strong>NEGATIVE: ${fmt(netBalance)}</strong> — Credits exceed Debits by ${fmt(Math.abs(netBalance))}. Root cause is excessive credit postings to account 1000.</div>`
+      : `<div class="alert alert-success">✅ Cash balance is ${fmt(netBalance)}</div>`;
+
+    // Credit breakdown table
+    const creditRows = Object.entries(creditBreakdown).map(([type, entries]) => {
+      const total = entries.reduce((s,e)=>s+Number(e.amount),0);
+      return `<tr>
+        <td class="mono">${type}</td>
+        <td>${entries.length}</td>
+        <td class="red mono">${fmt(total)}</td>
+        <td style="color:#64748b;font-size:11px;">${entries.map(e=>`${e.date}: ${fmt(e.amount)} (${e.description||'–'})`).slice(0,3).join('<br>')}</td>
+      </tr>`;
+    }).join('');
+
+    // Duplicate rows
+    const dupRows = duplicates.map(([key, arr]) => {
+      const [refType, refId] = key.split('|');
+      const total = arr.reduce((s,e)=>s+Number(e.amount), 0);
+      return `<tr class="dup-highlight">
+        <td class="mono red">${refType}</td>
+        <td class="mono">${refId}</td>
+        <td>${arr.length} entries</td>
+        <td class="red mono">${fmt(total)}</td>
+        <td>${arr.map(e=>`${e.type} ${fmt(e.amount)}`).join('<br>')}</td>
+        <td>
+          <button class="fix-btn" onclick="deleteDuplicates('${key}')">Delete Extras</button>
+        </td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="6" style="text-align:center;color:#64748b;padding:24px;">No duplicates found</td></tr>`;
+
+    // Breakdown by ref_type
+    const refRows = Object.entries(byRef).map(([type, data]) => {
+      const net = data.debits - data.credits;
+      return `<tr>
+        <td class="mono">${type}</td>
+        <td>${data.count}</td>
+        <td class="green mono">${fmt(data.debits)}</td>
+        <td class="red mono">${fmt(data.credits)}</td>
+        <td class="mono ${net >= 0 ? 'green' : 'red'}">${fmt(net)}</td>
+      </tr>`;
+    }).join('');
+
+    // All cash entries table (last 30)
+    const lastEntries = [...enriched].reverse().slice(0, 50);
+    const entryRows = lastEntries.map(e => {
+      const acc = accById[e.account_id];
+      return `<tr>
+        <td style="color:#64748b">${e.id}</td>
+        <td>${e.date}</td>
+        <td>${acc?.name || e.account_id} <span style="color:#475569;font-size:10px;">(${acc?.code})</span></td>
+        <td class="${e.type === 'debit' ? 'debit' : 'credit'} mono">${e.type.toUpperCase()}</td>
+        <td class="mono">${fmt(e.amount)}</td>
+        <td style="color:#94a3b8;font-size:11px;">${e.reference_type || '–'} #${e.reference_id || '–'}</td>
+        <td style="color:#64748b;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.description || '–'}</td>
+        <td class="mono ${e.running >= 0 ? 'green' : 'red'}">${fmt(e.running)}</td>
+      </tr>`;
+    }).join('');
+
+    // Unbalanced entries
+    const unbalRows = unbalanced.map(u => {
+      const [refType, refId] = u.key.split('|');
+      return `<tr>
+        <td class="mono yellow">${refType}</td>
+        <td class="mono">${refId}</td>
+        <td class="green mono">${fmt(u.dSum)}</td>
+        <td class="red mono">${fmt(u.cSum)}</td>
+        <td class="mono ${u.diff >= 0 ? 'green' : 'red'}">${fmt(u.diff)}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="5" style="text-align:center;color:#64748b;padding:24px;">All double-entry pairs are balanced ✅</td></tr>`;
+
+    R.innerHTML = `
+      ${balanceAlert}
+      ${dupAlert}
+
+      <!-- Summary Cards -->
+      <div class="grid">
+        <div class="card">
+          <div class="card-label">Total Cash Debits (In)</div>
+          <div class="card-value green">${fmt(totalDebits)}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Cash Credits (Out)</div>
+          <div class="card-value red">${fmt(totalCredits)}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Net Cash Balance</div>
+          <div class="card-value ${netBalance >= 0 ? 'green' : 'red'}">${fmt(netBalance)}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Cash Ledger Entries</div>
+          <div class="card-value white">${cashEntries.length}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Accounts</div>
+          <div class="card-value blue">${accounts.length}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Ledger Rows</div>
+          <div class="card-value white">${ledger.length}</div>
+        </div>
+      </div>
+
+      <!-- Breakdown by Reference Type -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">Cash Account — Breakdown by Transaction Type</span>
+          <span class="badge badge-yellow">${Object.keys(byRef).length} types</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Reference Type</th>
+              <th>Entries</th>
+              <th>Total Debits (Cash In)</th>
+              <th>Total Credits (Cash Out)</th>
+              <th>Net Impact</th>
+            </tr>
+          </thead>
+          <tbody>${refRows || '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:24px;">No entries found for account 1000/1010</td></tr>'}</tbody>
+        </table>
+      </div>
+
+      <!-- Credit Breakdown Detail -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">⬇️ Cash Credits (Outflows) — Detailed Breakdown</span>
+          <span class="badge badge-red">${creditsByType.length} credit entries</span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Source</th><th>Count</th><th>Total Amount</th><th>Sample Descriptions</th></tr>
+          </thead>
+          <tbody>${creditRows || '<tr><td colspan="4" style="text-align:center;color:#64748b;padding:24px;">No credit entries</td></tr>'}</tbody>
+        </table>
+      </div>
+
+      <!-- Duplicate Detection -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">🔁 Duplicate Reference ID Detection (Cash Account)</span>
+          <span class="badge ${duplicates.length > 0 ? 'badge-red' : 'badge-green'}">${duplicates.length} duplicates</span>
+        </div>
+        <div class="section-pad" style="${duplicates.length === 0 ? 'display:none' : ''}">
+          <div class="alert alert-danger">
+            These entries share the same reference_type + reference_id but appear more than twice in the cash account ledger.
+            In double-entry bookkeeping, each transaction should produce exactly 2 rows. Extras indicate duplicate postings.
+            <br><br>
+            <button class="fix-btn" onclick="deleteAllDuplicates()">🗑️ Auto-Fix All Duplicates (keep latest pair)</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Ref Type</th><th>Ref ID</th><th>Row Count</th><th>Total Amount</th><th>Entry Details</th><th>Action</th></tr>
+          </thead>
+          <tbody>${dupRows}</tbody>
+        </table>
+      </div>
+
+      <!-- Unbalanced Journal Entries -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">⚖️ Unbalanced Journal Entries (touching Cash)</span>
+          <span class="badge ${unbalanced.length > 0 ? 'badge-red' : 'badge-green'}">${unbalanced.length} unbalanced</span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Ref Type</th><th>Ref ID</th><th>Total Debits</th><th>Total Credits</th><th>Imbalance</th></tr>
+          </thead>
+          <tbody>${unbalRows}</tbody>
+        </table>
+      </div>
+
+      <!-- Full Cash Ledger -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">📋 Cash Account Ledger (Last 50 entries, newest first)</span>
+          <span class="badge badge-yellow">${cashEntries.length} total</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Reference</th><th>Description</th><th>Running Balance</th></tr>
+            </thead>
+            <tbody>${entryRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Manual Fix Tools -->
+      <div class="section">
+        <div class="section-header">
+          <span class="section-title">🛠️ Manual Balance Correction</span>
+        </div>
+        <div class="section-pad">
+          <div class="alert alert-info">
+            If the above tools cannot auto-fix the issue, use the corrective debit tool below.
+            This adds a balancing DEBIT entry to account 1000 to restore the correct cash balance.
+            <strong>Expected balance: Rs. 16,000. Current: ${fmt(netBalance)}.</strong>
+          </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:16px;">
+            <button class="fix-btn green-btn" onclick="addCorrectiveDebit(${Math.abs(16000 - netBalance)})">
+              ➕ Add Corrective Debit Entry (${fmt(Math.abs(16000 - netBalance))})
+            </button>
+            <button class="fix-btn" style="background:#6366f1;" onclick="window.location.reload()">
+              🔄 Re-run Audit
+            </button>
+            <button class="fix-btn" style="background:#334155;" onclick="exportReport()">
+              📥 Export Report to Console
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Store data globally for fix functions
+    window._auditData = { db, cashEntries, duplicates, dupMap, cashIds, cashAcc, netBalance };
+
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('results').innerHTML = `
+      <div class="alert alert-danger">
+        <strong>Error opening database:</strong> ${err.message}<br><br>
+        Make sure this page is opened from the same origin as the MobileMate POS app 
+        (i.e., via the local server at <code>http://127.0.0.1:...</code>), 
+        not directly from the file system.
+      </div>
+    `;
+  }
+}
+
+async function deleteDuplicates(key) {
+  const { db, dupMap } = window._auditData;
+  const entries = dupMap[key];
+  if (!entries || entries.length <= 2) { alert('No extras to delete.'); return; }
+  if (!confirm(`Delete ${entries.length - 2} extra ledger entries for key "${key}"? Only the 2 newest will be kept.`)) return;
+  // Sort by id desc, keep first 2 (newest), delete the rest
+  const sorted = [...entries].sort((a,b) => b.id - a.id);
+  const toDelete = sorted.slice(2).map(e => e.id);
+  for (const id of toDelete) await db.ledger.delete(id);
+  alert(`✅ Deleted ${toDelete.length} extra entries. Refreshing...`);
+  window.location.reload();
+}
+
+async function deleteAllDuplicates() {
+  const { db, duplicates, dupMap } = window._auditData;
+  if (!confirm(`Auto-fix ${duplicates.length} duplicate reference IDs? This keeps the 2 newest entries per key and deletes extras.`)) return;
+  let total = 0;
+  for (const [key, entries] of duplicates) {
+    const sorted = [...entries].sort((a,b) => b.id - a.id);
+    const toDelete = sorted.slice(2).map(e => e.id);
+    for (const id of toDelete) { await db.ledger.delete(id); total++; }
+  }
+  alert(`✅ Deleted ${total} duplicate ledger entries. Please reload the POS to verify the balance.`);
+  window.location.reload();
+}
+
+async function addCorrectiveDebit(amount) {
+  if (isNaN(amount) || amount <= 0) { alert('No correction needed.'); return; }
+  const { db, cashAcc } = window._auditData;
+  if (!cashAcc) { alert('Cash account (1000) not found in your Chart of Accounts.'); return; }
+  if (!confirm(`Add a corrective DEBIT of ${new Intl.NumberFormat().format(amount)} to Cash account (1000) with description "Audit Correction - Balance Restore"?`)) return;
+  await db.ledger.add({
+    date: new Date().toISOString().split('T')[0],
+    account_id: cashAcc.id,
+    amount: Math.round(amount * 100) / 100,
+    type: 'debit',
+    description: 'Audit Correction - Balance Restore',
+    reference_type: 'Adjustment',
+    reference_id: 'AUDIT-' + Date.now()
+  });
+  alert('✅ Corrective entry added. Please reload the POS app to see the updated balance.');
+  window.location.reload();
+}
+
+function exportReport() {
+  const { cashEntries, netBalance } = window._auditData;
+  console.group('=== MobileMate Ledger Audit Report ===');
+  console.log('Net Cash Balance:', netBalance);
+  console.log('All Cash Entries:', cashEntries);
+  const grouped = {};
+  cashEntries.forEach(e => {
+    const k = e.reference_type || 'Manual';
+    if (!grouped[k]) grouped[k] = { debits: 0, credits: 0, entries: [] };
+    if (e.type === 'debit') grouped[k].debits += Number(e.amount);
+    else grouped[k].credits += Number(e.amount);
+    grouped[k].entries.push(e);
+  });
+  console.table(Object.entries(grouped).map(([type, d]) => ({
+    type, debits: d.debits, credits: d.credits, net: d.debits - d.credits, count: d.entries.length
+  })));
+  console.groupEnd();
+  alert('Full report exported to browser console (F12 → Console).');
+}
+
+runAudit();
+</script>
+</body>
+</html>

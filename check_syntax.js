@@ -7,7 +7,7 @@ const files = fs.readdirSync(currDir).filter(f => f.endsWith('.js'));
 
 files.forEach(f => {
   try {
-    execSync(`node --check "${path.join(currDir, f)}"`);
+    execSync(`"${process.execPath}" --check "${path.join(currDir, f)}"`);
   } catch (e) {
     console.error(`Syntax error in ${f}:`, e.stderr.toString());
   }

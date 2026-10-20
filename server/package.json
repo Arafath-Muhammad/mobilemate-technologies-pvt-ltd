@@ -1,0 +1,16 @@
+{
+  "name": "mobilemate-pos-backend",
+  "version": "1.0.0",
+  "description": "Backend API for MobileMate POS",
+  "main": "../server.js",
+  "scripts": {
+    "dev": "node ../server.js",
+    "start": "node ../server.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.2.1"
+  }
+}
